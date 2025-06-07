@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Input & Kelola Data UMKM{% endblock %}
+
+{% block content %}
+<div class="content-section">
+    <h2 class="page-title">Input & Kelola Data UMKM</h2>
+    <p class="text-muted mb-4">Anda bisa memasukkan data UMKM satu per satu melalui form manual atau mengunggah keseluruhan data melalui file Excel.</p>
+
+    {# --- BARIS UNTUK FORM INPUT MANUAL DAN UNGGAH EXCEL (BERSEBELAHAN) --- #}
+    <div class="row mb-4 pb-3">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h4 class="card-title mb-3">Form Input Data (Manual)</h4>
+                    <p><small>Isi form di bawah untuk menambahkan data UMKM satu per satu ke sesi saat ini.</small></p>
+                    <form method="POST" action="{{ url_for('main.input_data') }}" class="mb-0">
+                        <div class="form-group">
+                            <label for="nama_umkm">Nama UMKM/Pemilik</label>
+                            <input type="text" class="form-control form-control-sm" id="nama_umkm" name="nama_umkm" required>
+                        </div>
+
+                        {% for key, config in kriteria_config.items() %}
+                        <div class="form-group">
+                            <label for="{{ key }}">{{ config.deskripsi }}</label>
+                            <input type="number" 
+                                   step="{% if key == 'jumlah_tenaga_kerja' or key == 'tingkat_urgensi' %}1{% else %}any{% endif %}"
+                                   class="form-control form-control-sm" id="{{ key }}" name="{{ key }}"
+                                   {% if key == 'tingkat_urgensi' %}min="1" max="5"
+                                   {% elif key == 'lama_usaha_tahun' or key == 'jumlah_tenaga_kerja' %}min="0" 
+                                   {% elif key == 'pendapatan_bulanan' or key == 'jumlah_aset' %} 
+                                   {% else %}min="0"{% endif %} 
+                                   required>
+                            {% if key == 'tingkat_urgensi' %}<small class="form-text text-muted">Skala 1 (Tidak Mendesak) s.d. 5 (Sangat Mendesak).</small>{% endif %}
+                             {% if key == 'lama_usaha_tahun' %}<small class="form-text text-muted">Contoh: 0.5 (untuk 6 bulan), 1, 2.75.</small>{% endif %}
+                        </div>
+                        {% endfor %}
+                        <button type="submit" name="submit_manual" class="btn btn-primary btn-block"><i class="fas fa-plus-circle mr-1"></i> Tambah Data Manual</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h4 class="card-title mb-3">Unggah File Excel</h4>
+                    <p><small>Atau unggah file Excel untuk mengisi data UMKM. Data dari Excel akan menggantikan data manual di sesi ini. <a href="#contohExcelModal" data-toggle="modal">Lihat contoh format</a>.</small></p>
+                    <form method="POST" action="{{ url_for('main.input_data') }}" enctype="multipart/form-data" class="mb-0">
+                        <div class="form-group">
+                            <label for="file_excel">Pilih File Excel (.xlsx, .xls):</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="file_excel" name="file_excel" accept=".xlsx, .xls" required>
+                                <label class="custom-file-label" for="file_excel">Pilih file...</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-info btn-block mt-3"><i class="fas fa-file-excel mr-1"></i> Unggah & Ganti Data Sesi</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# --- AKHIR BARIS UNTUK FORM INPUT --- #}
+
+    <hr class="my-4">
+
+    {# --- BAGIAN UNTUK TABEL DATA UMKM SAAT INI DAN PROSES (DI BAWAH) --- #}
+    <div>
+        <h3 class="mb-3 page-title" style="font-size: 1.75rem; border-bottom-width: 2px;">Data UMKM Sesi Saat Ini (Sementara)</h3>
+        {% if nama_file_excel %}
+            <div class="alert alert-info" role="alert">
+                Data sesi saat ini berasal dari file: <strong>{{ nama_file_excel }}</strong>
+            </div>
+        {% elif data_umkm %}
+            <div class="alert alert-info" role="alert">
+                Data sesi saat ini diinput secara manual.
+            </div>
+        {% endif %}
+
+        {% if data_umkm %}
+        <div class="table-responsive animated-card is-visible" style="max-height: 450px; overflow-y: auto; margin-bottom: 1.5rem; border: 1px solid #e0e6ed; border-radius: 8px;">
+            <table class="table table-striped table-bordered table-sm table-hover mb-0">
+                <thead class="sticky-top">
+                    <tr>
+                        <th class="text-center-data">ID Sesi</th>
+                        <th>Nama UMKM</th>
+                        {% for key in kriteria_keys_ordered %}
+                        <th class="{{ 'text-right-numeric' if key != 'nama_umkm' else '' }}">{{ kriteria_config[key].deskripsi|replace(' (Rp)', '')|replace(' (Tahun)', '')|replace(' (1-5, 5 Sangat Mendesak)', '')|truncate(15, True, '...') }}</th>
+                        {% endfor %}
+                        <th>Aksi</th> {# <--- KOLOM BARU UNTUK TOMBOL HAPUS #}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for umkm_item_loopvar in data_umkm %}
+                    <tr>
+                        <td class="text-center-data">{{ umkm_item_loopvar.id }}</td>
+                        <td>{{ umkm_item_loopvar.nama_umkm }}</td>
+                        {% for key in kriteria_keys_ordered %}
+                        <td class="{{ 'text-right-numeric' if key != 'nama_umkm' else '' }}">
+                            {% if umkm_item_loopvar[key] is not none %}
+                                {% if key == 'pendapatan_bulanan' or key == 'jumlah_aset' %}
+                                    {{ "{:,.0f}".format(umkm_item_loopvar[key] | float).replace(',', '.') }}
+                                {% else %}
+                                    {{ umkm_item_loopvar[key] | format_number }}
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        {# --- TOMBOL HAPUS UNTUK SETIAP BARIS --- #}
+                        <td>
+                            <form method="POST" action="{{ url_for('main.delete_session_umkm', item_id=umkm_item_loopvar.id) }}" style="display:inline;" onsubmit="return confirm('Anda yakin ingin menghapus data UMKM \'{{ umkm_item_loopvar.nama_umkm }}\' (ID: {{ umkm_item_loopvar.id }}) dari sesi ini?');">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Hapus Data Sesi Ini">
+                                    <i class="fas fa-trash-alt"></i> {# Contoh ikon Font Awesome, pastikan FA terpasang #}
+                                    {# Alternatif tanpa ikon: Hapus #}
+                                </button>
+                            </form>
+                        </td>
+                        {# --- AKHIR TOMBOL HAPUS --- #}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card mt-4 animated-card is-visible">
+            <div class="card-body">
+                <h5 class="card-title" id="proses">Proses Clustering dan Prioritas</h5>
+                <form method="POST" action="{{ url_for('main.proses_data') }}" class="form-inline">
+                    <div class="form-group mb-2 mr-sm-2">
+                        <label for="jumlah_cluster" class="mr-2">Jml Cluster K-Means:</label>
+                        <input type="number" class="form-control form-control-sm" id="jumlah_cluster" name="jumlah_cluster" placeholder="Cluster" value="3" min="1" max="{{ data_umkm|length if data_umkm else 1 }}" required style="width: 100px;">
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm mb-2"><i class="fas fa-cogs mr-1"></i> Proses & Simpan ke Riwayat</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary mt-3">Belum ada data UMKM dalam sesi input saat ini untuk diproses.</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('main.reset_data') }}" class="mt-4 text-right">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin mereset data sesi sementara dan file yang diunggah? Data di riwayat tidak akan terhapus.');"><i class="fas fa-trash-alt mr-1"></i> Reset Data Sesi</button>
+        </form>
+    </div>
+
+</div>
+
+<div class="modal fade" id="contohExcelModal" tabindex="-1" aria-labelledby="contohExcelModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="contohExcelModalLabel">Contoh Format Isi File Excel</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Pastikan baris pertama file Excel Anda berisi header kolom persis seperti di bawah ini. Semua kolom kriteria (selain `nama_umkm`) harus berisi angka.</p>
+        <table class="table table-bordered table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>nama_umkm</th>
+                    <th>pendapatan_bulanan</th>
+                    <th>jumlah_tenaga_kerja</th>
+                    <th>lama_usaha_tahun</th>
+                    <th>jumlah_aset</th>
+                    <th>tingkat_urgensi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Warung Sejahtera</td><td>5000000</td><td>2</td><td>3</td><td>10000000</td><td>4</td></tr>
+                <tr><td>Bengkel Maju Jaya</td><td>15000000</td><td>5</td><td>10</td><td>75000000</td><td>2</td></tr>
+                <tr><td>Katering Berkah</td><td>8000000</td><td>3</td><td>5.0</td><td>15000000</td><td>5</td></tr>
+                <tr><td>Laundry Express</td><td>6000000</td><td>3</td><td>1.5</td><td>12000000</td><td>5</td></tr>
+                <tr><td><em>...data lainnya...</em></td><td><em>...</em></td><td><em>...</em></td><td><em>...</em></td><td><em>...</em></td><td><em>...</em></td></tr>
+            </tbody>
+        </table>
+        <p><strong>Penjelasan Kolom:</strong></p>
+        <ul>
+            <li><strong>nama_umkm</strong>: Teks, nama usaha/pemilik.</li>
+            <li><strong>pendapatan_bulanan</strong>: Angka, pendapatan kotor bulanan (misal: 5000000).</li>
+            <li><strong>jumlah_tenaga_kerja</strong>: Angka bulat, jumlah pekerja (misal: 2).</li>
+            <li><strong>lama_usaha_tahun</strong>: Angka, lama usaha dalam tahun (misal: 3 atau 2.5 atau 0.75).</li>
+            <li><strong>jumlah_aset</strong>: Angka, total nilai aset (misal: 10000000).</li>
+            <li><strong>tingkat_urgensi</strong>: Angka bulat antara 1 (tidak mendesak) dan 5 (sangat mendesak).</li>
+        </ul>
+        <p class="text-danger">PENTING: Jangan gunakan pemisah ribuan (titik/koma) atau simbol mata uang (Rp) langsung di dalam sel angka pada file Excel Anda. Pastikan tidak ada sel kosong pada kolom kriteria.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

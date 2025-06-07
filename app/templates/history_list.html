@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Riwayat Perhitungan{% endblock %}
+
+{% block content %}
+<h2>Riwayat Sesi Perhitungan</h2>
+<p>Berikut adalah daftar sesi perhitungan yang telah disimpan.</p>
+
+{% if sessions.items %}
+<div class="table-responsive">
+    <table class="table table-hover table-sm">
+        <thead class="thead-light">
+            <tr>
+                <th>ID Sesi</th>
+                <th>Waktu Perhitungan</th>
+                <th>Jumlah UMKM</th>
+                <th>Cluster Digunakan</th>
+                <th>Sumber Data</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions.items %}
+            <tr>
+                <td>{{ session.id }}</td>
+                <td>{{ session.timestamp | datetimeformat('medium') }} WIB</td>
+                <td>{{ session.jumlah_umkm }}</td>
+                <td>{{ session.jumlah_cluster_digunakan }}</td>
+                <td>{{ session.nama_file_sumber if session.nama_file_sumber else 'Manual Input' }}</td>
+                <td>
+                    <a href="{{ url_for('main.history_detail', session_id=session.id) }}" class="btn btn-info btn-sm">Detail</a>
+                    <form action="{{ url_for('main.delete_history_session', session_id=session.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus sesi riwayat ini? Semua data UMKM terkait sesi ini juga akan terhapus.');">
+                        <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# Navigasi Paginasi #}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if sessions.has_prev %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('main.history_list', page=sessions.prev_num) }}">&laquo; Sebelumnya</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; Sebelumnya</span></li>
+        {% endif %}
+
+        {% for page_num in sessions.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+            {% if page_num %}
+                {% if sessions.page == page_num %}
+                    <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('main.history_list', page=page_num) }}">{{ page_num }}</a></li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if sessions.has_next %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('main.history_list', page=sessions.next_num) }}">Berikutnya &raquo;</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Berikutnya &raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+
+{% else %}
+<div class="alert alert-info" role="alert">
+  Belum ada riwayat perhitungan yang tersimpan.
+</div>
+{% endif %}
+{% endblock %}

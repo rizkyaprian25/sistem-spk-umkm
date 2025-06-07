@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Riwayat Sesi #{{ session.id }}{% endblock %}
+
+{% block content %}
+<div class="content-section">
+    <h2 class="page-title">Detail Riwayat Sesi Perhitungan #{{ session.id }}</h2>
+    <hr>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <p><strong>Waktu Perhitungan:</strong> {{ session.timestamp | datetimeformat('full') }} WIB</p>
+            <p><strong>Jumlah UMKM Diproses:</strong> {{ session.jumlah_umkm }}</p>
+            <p><strong>Jumlah Cluster Digunakan:</strong> {{ session.jumlah_cluster_digunakan }}</p>
+            <p><strong>Sumber Data:</strong> {{ session.nama_file_sumber if session.nama_file_sumber else 'Input Manual' }}</p>
+        </div>
+        <div class="col-md-6">
+            <h5>Kriteria dan Bobot Global yang Digunakan Saat Sesi:</h5>
+            {% if kriteria_saw_config_sesi %}
+            <ul class="list-group list-group-flush">
+                {% for key, config in kriteria_saw_config_sesi.items() %}
+                <li class="list-group-item py-1">
+                    {{ config.deskripsi }}: Bobot={{ config.bobot | format_number }}, Tipe={{ config.tipe|title }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>Informasi kriteria global tidak tersimpan untuk sesi ini.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if results %}
+    <h4>Hasil Akhir Prioritas UMKM (Tersimpan):</h4>
+    <div class="table-responsive animated-card is-visible">
+        <table class="table table-hover table-bordered table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th class="text-center-data">No. Urut</th>
+                    <th>ID Asli UMKM</th>
+                    <th>Nama UMKM</th>
+                    {% if kriteria_keys_ordered_sesi and kriteria_saw_config_sesi %}
+                        {% for key in kriteria_keys_ordered_sesi %}
+                            <th>{{ kriteria_saw_config_sesi[key].deskripsi|replace(' (Rp)', '')|replace(' (Tahun)', '')|replace(' (1-5, 5 Sangat Mendesak)', '') }}</th> {# Hapus truncate #}
+                        {% endfor %}
+                    {% endif %}
+                    <th class="text-center-data">Cluster K-Means</th>
+                    <th class="text-right-numeric">Nilai SAW</th>
+                    <th class="text-center-data">Rank SAW</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result_item in results %}
+                <tr class="{{ 'table-success font-weight-bold' if result_item.ranking_saw and result_item.ranking_saw <= 3 else ('table-warning' if result_item.ranking_saw and result_item.ranking_saw <= (session.jumlah_cluster_digunakan if session.jumlah_cluster_digunakan and session.jumlah_cluster_digunakan > 0 else 3 ) else '') }}">
+                    <td class="text-center-data">{{ loop.index }}</td>
+                    <td>{{ result_item.umkm_id_asli }}</td>
+                    <td>{{ result_item.nama_umkm }}</td>
+                    {% set umkm_kriteria = result_item.get_kriteria_values() %}
+                    {% if kriteria_keys_ordered_sesi %}
+                        {% for key in kriteria_keys_ordered_sesi %}
+                        <td class="{{ 'text-right-numeric' if key != 'nama_umkm' else '' }}">
+                            {% if umkm_kriteria.get(key) is not none %}
+                                {% if key == 'pendapatan_bulanan' or key == 'jumlah_aset' %}
+                                    {{ "{:,.0f}".format(umkm_kriteria[key] | float).replace(',', '.') }}
+                                {% else %}
+                                    {{ umkm_kriteria[key] | format_number }}
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    {% endif %}
+                    <td class="text-center-data"><strong>{{ ('C' + (result_item.cluster_kmeans + 1)|string) if result_item.cluster_kmeans is not none and result_item.cluster_kmeans >= 0 else ('N/A' if result_item.cluster_kmeans is none else 'Err') }}</strong></td>
+                    <td class="text-right-numeric">{{ "%.3f"|format(result_item.nilai_saw | float) if result_item.nilai_saw is not none else 'N/A' }}</td>
+                    <td class="text-center-data"><strong>{{ result_item.ranking_saw | format_number if result_item.ranking_saw is not none else 'N/A' }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+      Tidak ada data hasil UMKM untuk sesi ini.
+    </div>
+    {% endif %}
+</div>
+
+
+{% if saw_details_history and saw_details_history.umkm_processed_for_saw %}
+<div class="content-section mt-4 animated-card">
+    <div class="accordion" id="accordionSAWDetailsHistory">
+        <div class="card">
+            <div class="card-header" id="headingSAWDetailsHistory">
+                <h3 class="mb-0">
+                    <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#collapseSAWDetailsHistory" aria-expanded="false" aria-controls="collapseSAWDetailsHistory">
+                        Detail Perhitungan SAW (Tersimpan) (Klik untuk Buka/Tutup)
+                    </button>
+                </h3>
+            </div>
+            <div id="collapseSAWDetailsHistory" class="collapse" aria-labelledby="headingSAWDetailsHistory" data-parent="#accordionSAWDetailsHistory">
+                <div class="card-body">
+                    <h4>1. Matriks Keputusan (Data Awal UMKM untuk SAW - Tersimpan)</h4>
+                    <p><small>Menampilkan data UMKM yang valid dan diproses oleh SAW pada sesi ini.</small></p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>ID UMKM (Tersimpan)</th>
+                                    <th>Nama UMKM (Tersimpan)</th>
+                                    {% for k_name in saw_details_history.criteria_details_saw.keys() %}
+                                        {# --- TRUNCATE DIHAPUS DARI SINI --- #}
+                                        <th class="text-right-numeric">{{ saw_details_history.criteria_details_saw[k_name].deskripsi }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for umkm_data in saw_details_history.umkm_processed_for_saw %}
+                                    {% set row_idx = loop.index0 %}
+                                    <tr>
+                                        <td>{{ umkm_data.id }}</td>
+                                        <td>{{ umkm_data.nama_umkm }}</td>
+                                        {% for val in saw_details_history.decision_matrix[row_idx] %}
+                                            <td class="text-right-numeric">{{ val | format_number }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <hr>
+
+                    <h4>2. Matriks Normalisasi (R - Tersimpan)</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>ID UMKM (Tersimpan)</th>
+                                    <th>Nama UMKM (Tersimpan)</th>
+                                    {% for k_name in saw_details_history.criteria_details_saw.keys() %}
+                                        {# --- TRUNCATE DIHAPUS DARI SINI --- #}
+                                        <th class="text-right-numeric">R<sub>{{ loop.index }}</sub> ({{ saw_details_history.criteria_details_saw[k_name].deskripsi }})</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for umkm_data in saw_details_history.umkm_processed_for_saw %}
+                                    {% set row_idx = loop.index0 %}
+                                    <tr>
+                                        <td>{{ umkm_data.id }}</td>
+                                        <td>{{ umkm_data.nama_umkm }}</td>
+                                        {% for val_norm in saw_details_history.normalized_matrix[row_idx] %}
+                                            <td class="text-right-numeric">{{ "%.4f"|format(val_norm | float) }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <hr>
+                    
+                    <h4>3. Perhitungan Skor Akhir (V - Tersimpan)</h4>
+                    <p>Skor (V<sub>i</sub>) = &Sigma; (R<sub>ij</sub> * W<sub>j</sub>)</p>
+                    <p><small>Nilai akhir individu ditampilkan pada tabel hasil prioritas di atas.</small></p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+{% if not saw_details_history or not saw_details_history.umkm_processed_for_saw %}
+<div class="content-section mt-4">
+    <p class="text-muted">Detail langkah perhitungan SAW tidak tersimpan atau tidak ada data UMKM yang diproses SAW untuk sesi riwayat ini.</p>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="mt-4 mb-5">
+    <a href="{{ url_for('main.history_list') }}" class="btn btn-secondary">&laquo; Kembali ke Daftar Riwayat</a>
+</div>
+{% endblock %}

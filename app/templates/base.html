@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}Sistem Prioritas Bantuan UMKM{% endblock %}</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">Bantuan UMKM Desa</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item {% if request.endpoint == 'main.index' %}active{% endif %}">
+                        <a class="nav-link" href="{{ url_for('main.index') }}">Beranda</a>
+                    </li>
+                    <li class="nav-item {% if request.endpoint == 'main.input_data' %}active{% endif %}">
+                        <a class="nav-link" href="{{ url_for('main.input_data') }}">Input & Kelola Data</a>
+                    </li>
+                    <li class="nav-item {% if request.endpoint == 'main.history_list' or request.endpoint == 'main.history_detail' %}active{% endif %}">
+                        <a class="nav-link" href="{{ url_for('main.history_list') }}">Riwayat Perhitungan</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main role="main" class="container"> {# Menggunakan <main> untuk konten utama #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert"> {# mt-3 untuk spasi dari navbar #}
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <a href="#" id="scrollToTopBtn" class="scroll-to-top-btn" title="Kembali ke atas">
+        &uarr;
+    </a>
+
+    <footer class="footer"> 
+        <div class="container text-center">
+            <span class="text-muted">Sistem Penentuan Prioritas Penerima Bantuan UMKM &copy; {{ current_year }}</span>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+</body>
+</html>
