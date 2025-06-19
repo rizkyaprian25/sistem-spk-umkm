@@ -3,47 +3,82 @@
 {% block title %}Beranda - Sistem Prioritas Bantuan UMKM{% endblock %}
 
 {% block content %}
-<div class="jumbotron">
-    <h1 class="display-4">Selamat Datang! <img src="https://img.icons8.com/fluency/48/000000/helping-hand.png" alt="bantuan" style="vertical-align: middle;"/></h1>
-    <p class="lead">Sistem Penentuan Prioritas Penerima Bantuan UMKM Berbasis K-Means Clustering dan SAW di Desa.</p>
+
+<!-- Hero / Jumbotron Section -->
+<div class="jumbotron text-center">
+    <h1 class="display-4">
+        Selamat Datang! 
+        <img src="https://img.icons8.com/fluency/48/000000/helping-hand.png" alt="bantuan" style="vertical-align: middle;"/>
+    </h1>
+    <p class="lead">Sistem Prioritas Penerima Bantuan UMKM Berbasis Decision Tree & SAW</p>
     <hr class="my-4">
-    <p>Sistem ini membantu dalam mengelompokkan UMKM dan menentukan prioritas penerima bantuan berdasarkan kriteria yang telah ditetapkan. Anda dapat menginput data secara manual atau mengunggah file Excel. Hasil perhitungan akan disimpan dalam riwayat.</p>
-    <a class="btn btn-primary btn-lg" href="{{ url_for('main.input_data') }}" role="button">🚀 Mulai Kelola Data</a>
+    <p>
+        Sistem ini memudahkan penentuan prioritas bantuan berdasarkan data UMKM yang dianalisis dengan klasifikasi dan perhitungan multi-kriteria.
+    </p>
+    <a class="btn btn-primary btn-lg mt-3" href="{{ url_for('main.input_data') }}" role="button">
+        🚀 Mulai Kelola Data
+    </a>
 </div>
 
-<div class="row justify-content-center"> {# justify-content-center untuk memusatkan kolom anak jika tidak full width #}
-    {# Kartu Metodologi dibuat mengambil lebar yang lebih sesuai dan terpusat #}
-    <div class="col-12 col-md-10 col-lg-8"> 
-        <div class="card mb-3 animated-card">
+<!-- Fitur Ringkasan (Optional Cards) -->
+<div class="row text-center mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 animated-card">
             <div class="card-body">
-                <h5 class="card-title">Metodologi <img src="https://img.icons8.com/fluency/24/000000/mind-map.png" alt="metode" style="vertical-align: middle;"/></h5>
-                <p class="card-text">
-                    <strong>K-Means Clustering</strong>: Untuk mengelompokkan UMKM berdasarkan kesamaan karakteristik. Kriteria yang digunakan (default):
-                    <ul>
-                        {% if kriteria_info %}
-                            {% for key, config in kriteria_info.items() %}
-                            <li>{{ config.deskripsi }}</li>
-                            {% endfor %}
-                        {% else %}
-                            <li>Informasi kriteria tidak tersedia.</li>
-                        {% endif %}
-                    </ul>
-                </p>
-                <p class="card-text">
-                    <strong>Simple Additive Weighting (SAW)</strong>: Untuk perangkingan prioritas UMKM. Kriteria dan bobot (default):
-                     <ul>
-                        {% if kriteria_info %}
-                            {% for key, config in kriteria_info.items() %}
-                            <li>{{ config.deskripsi }}: Bobot = {{ config.bobot | format_number }}, Tipe = {{ config.tipe|title }}</li>
-                            {% endfor %}
-                        {% else %}
-                            <li>Informasi kriteria tidak tersedia.</li>
-                        {% endif %}
-                    </ul>
-                </p>
-                 <a href="{{ url_for('main.history_list') }}" class="btn btn-secondary">Lihat Riwayat Perhitungan</a>
+                <h5 class="card-title">📊 Input Data</h5>
+                <p class="card-text">Input data UMKM secara manual atau melalui file Excel.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 animated-card">
+            <div class="card-body">
+                <h5 class="card-title">🧠 Decision Tree</h5>
+                <p class="card-text">Klasifikasi skala usaha (Kecil, Sedang, Besar) berdasarkan aset.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 animated-card">
+            <div class="card-body">
+                <h5 class="card-title">⚖️ Metode SAW</h5>
+                <p class="card-text">Penilaian prioritas bantuan berdasarkan bobot kriteria yang telah ditentukan.</p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Metodologi Section -->
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+        <div class="card mb-3 animated-card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    Metodologi 
+                    <img src="https://img.icons8.com/fluency/24/000000/mind-map.png" alt="metode" style="vertical-align: middle;"/>
+                </h5>
+                <p><strong>Decision Tree:</strong> Mengklasifikasikan UMKM berdasarkan <em>Jumlah Aset</em> ke dalam kategori <strong>Mikro</strong>, <strong>Kecil</strong>, atau <strong>Sedang</strong>.</p>
+                <p><strong>Simple Additive Weighting (SAW):</strong> Melakukan perangkingan UMKM berdasarkan bobot kriteria. Skala usaha hasil klasifikasi juga digunakan sebagai kriteria tambahan.</p>
+
+                <h6 class="mt-4">📌 Kriteria & Bobot:</h6>
+                <ul>
+                    {% if kriteria_info %}
+                        {% for key, config in kriteria_info.items() %}
+                        <li>
+                            <strong>{{ config.deskripsi }}</strong> — Bobot: <em>{{ config.bobot | format_number }}</em>, Tipe: <em>{{ config.tipe|title }}</em>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li>Informasi kriteria tidak tersedia.</li>
+                    {% endif %}
+                </ul>
+
+                <a href="{{ url_for('main.history_list') }}" class="btn btn-secondary mt-3">
+                    📁 Lihat Riwayat Perhitungan
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -8,17 +8,12 @@ class CalculationSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     jumlah_umkm = db.Column(db.Integer, nullable=False)
-    jumlah_cluster_digunakan = db.Column(db.Integer, nullable=False)
     nama_file_sumber = db.Column(db.String(255), nullable=True)
-    kriteria_config_json = db.Column(db.Text, nullable=True) # Menyimpan kriteria & bobot global
-
-    # --- KOLOM BARU UNTUK DETAIL SAW ---
-    saw_decision_matrix_json = db.Column(db.Text, nullable=True)    # Matriks keputusan (data awal)
-    saw_normalized_matrix_json = db.Column(db.Text, nullable=True) # Matriks normalisasi
-    saw_umkm_processed_json = db.Column(db.Text, nullable=True)     # Info UMKM yg diproses SAW (ID, nama)
-    # Bobot dan detail kriteria (nama, tipe) sudah tercakup dalam kriteria_config_json
-    # atau bisa direkonstruksi dari sana jika diperlukan secara terpisah.
-    # --- AKHIR KOLOM BARU ---
+    
+    kriteria_config_json = db.Column(db.Text, nullable=True)
+    saw_decision_matrix_json = db.Column(db.Text, nullable=True)
+    saw_normalized_matrix_json = db.Column(db.Text, nullable=True)
+    saw_umkm_processed_json = db.Column(db.Text, nullable=True)
 
     results = db.relationship('UMKMResult', backref='session', lazy='dynamic', cascade="all, delete-orphan")
 
@@ -31,14 +26,12 @@ class UMKMResult(db.Model):
     
     umkm_id_asli = db.Column(db.String(50))
     nama_umkm = db.Column(db.String(150), nullable=False)
-    kriteria_values_json = db.Column(db.Text, nullable=False) # Nilai kriteria asli UMKM ini
-
-    cluster_kmeans = db.Column(db.Integer, nullable=True)
+    
+    klasifikasi_aset = db.Column(db.String(50), nullable=True)
     nilai_saw = db.Column(db.Float, nullable=True)
     ranking_saw = db.Column(db.Integer, nullable=True)
 
-    def __repr__(self):
-        return f'<UMKMResult {self.id} - {self.nama_umkm} for Session {self.session_id}>'
+    kriteria_values_json = db.Column(db.Text, nullable=False)
 
     def get_kriteria_values(self):
         try:
